@@ -208,18 +208,19 @@ class TurtleCoin_Gateway extends WC_Payment_Gateway
     {
         global $wpdb;
 
-        // Get Live Price
+        // Get Live Price LTC-TRTL
         $TRTL_link = 'https://tradeogre.com/api/v1/ticker/ltc-trtl';
         $curl = curl_init();
         curl_setopt_array($curl, array(
             CURLOPT_RETURNTRANSFER => 1,
             CURLOPT_URL => $TRTL_link,
         ));
-        $resp = curl_exec($curl);
+	$resp = curl_exec($curl);
         curl_close($curl);
         $price_trtl = json_decode($resp, true);
         
-        $api_link = 'https://min-api.cryptocompare.com/data/price?fsym=LTC&tsyms=USD&extraParams=trtl_woocommerce';
+        // Get Price LTC-USD
+	$api_link = 'https://min-api.cryptocompare.com/data/price?fsym=LTC&tsyms=USD&extraParams=trtl_woocommerce';
         $curl = curl_init();
         curl_setopt_array($curl, array(
             CURLOPT_RETURNTRANSFER => 1,
@@ -227,22 +228,46 @@ class TurtleCoin_Gateway extends WC_Payment_Gateway
         ));
         $resp = curl_exec($curl);
         curl_close($curl);
-        $price = json_decode($resp, true);
+        $price_usd = json_decode($resp, true);
 
-        if($price_trtl['success'] === true && isset($price_trtl['bid'])) {
-            if(isset($price['USD'])) {
-                $table_name = $wpdb->prefix.'turtlecoin_gateway_live_rates';
+        // Get Price LTC-EUR
+        $api_link = 'https://min-api.cryptocompare.com/data/price?fsym=LTC&tsyms=EUR&extraParams=trtl_woocommerce';
+        $curl = curl_init();
+        curl_setopt_array($curl, array(
+            CURLOPT_RETURNTRANSFER => 1,
+            CURLOPT_URL => $api_link,
+        ));
+        $resp = curl_exec($curl);
+        curl_close($curl);
+        $price_eur = json_decode($resp, true);
+
+
+	if($price_trtl['success'] === true && isset($price_trtl['bid'])) {
+           
+	   $table_name = $wpdb->prefix.'turtlecoin_gateway_live_rates'; 
+
+	   if(isset($price['USD'])) {
+                //$table_name = $wpdb->prefix.'turtlecoin_gateway_live_rates';
 
                 // shift decimal eight places for precise int storage
-                $rate_usd = intval($price['USD'] * $price_trtl['bid'] * 1e8);
+                $rate_usd = intval($price_usd['USD'] * $price_trtl['bid'] * 1e8);
                 $query = $wpdb->prepare("INSERT INTO $table_name (currency, rate, updated) VALUES (%s, %d, NOW()) ON DUPLICATE KEY UPDATE rate=%d, updated=NOW()", array('USD', $rate_usd, $rate_usd));
                 $wpdb->query($query);
+	   } 
+	   if(isset($price['EUR'])) {
+           	//$table_name = $wpdb->prefix.'turtlecoin_gateway_live_rates';
 
-                $rate_ltc = round($price_trtl['bid'] * 1e8);
-                $query = $wpdb->prepare("INSERT INTO $table_name (currency, rate, updated) VALUES (%s, %d, NOW()) ON DUPLICATE KEY UPDATE rate=%d, updated=NOW()", array('LTC', $rate_ltc, $rate_ltc));
+		// shift decimal eight places for precise int storage
+                $rate_eur = intval($price_eur['EUR'] * $price_trtl['bid'] * 1e8);
+                $query = $wpdb->prepare("INSERT INTO $table_name (currency, rate, updated) VALUES (%s, %d, NOW()) ON DUPLICATE KEY UPDATE rate=%d, updated=NOW()", array('EUR', $rate_eur, $rate_eur));
+                $wpdb->query($query);    
+	   }
+
+	   // set LTC rate to DB 
+           $rate_ltc = round($price_trtl['bid'] * 1e8);
+           $query = $wpdb->prepare("INSERT INTO $table_name (currency, rate, updated) VALUES (%s, %d, NOW()) ON DUPLICATE KEY UPDATE rate=%d, updated=NOW()", array('LTC', $rate_ltc, $rate_ltc));
                 $wpdb->query($query);
                 
-            }
         } 
 
         // Get current network/wallet height
