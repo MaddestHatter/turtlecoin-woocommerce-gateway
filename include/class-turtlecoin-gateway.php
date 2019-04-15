@@ -246,7 +246,7 @@ class TurtleCoin_Gateway extends WC_Payment_Gateway
            
 	   $table_name = $wpdb->prefix.'turtlecoin_gateway_live_rates'; 
 
-	   if(isset($price['USD'])) {
+	   if(isset($price_usd['USD'])) {
                 //$table_name = $wpdb->prefix.'turtlecoin_gateway_live_rates';
 
                 // shift decimal eight places for precise int storage
@@ -254,7 +254,7 @@ class TurtleCoin_Gateway extends WC_Payment_Gateway
                 $query = $wpdb->prepare("INSERT INTO $table_name (currency, rate, updated) VALUES (%s, %d, NOW()) ON DUPLICATE KEY UPDATE rate=%d, updated=NOW()", array('USD', $rate_usd, $rate_usd));
                 $wpdb->query($query);
 	   } 
-	   if(isset($price['EUR'])) {
+	   if(isset($price_eur['EUR'])) {
            	//$table_name = $wpdb->prefix.'turtlecoin_gateway_live_rates';
 
 		// shift decimal eight places for precise int storage
